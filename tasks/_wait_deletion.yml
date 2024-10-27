@@ -1,0 +1,22 @@
+---
+# Wait for QPKG apps deletion
+
+# vars:
+#   - apps
+
+# Wait for apps deletion
+- name: Wait for apps deletion
+  vars:
+    cmdquery: "[*].join(' ', ['qpkg_cli --status', @, `| grep 'not found';`])"
+    command: "{{ apps | default([]) | community.general.json_query(cmdquery) | join(' ') }}"
+  # ex:
+  #       qpkg_cli --status app1 | grep 'not found'; \
+  #       qpkg_cli --status app2 | grep 'not found'; \
+  #       ...
+  ansible.builtin.command: "{{ command }}"
+  failed_when: false
+  register: status_result
+  until: (status_result.stdout_lines | length) == (apps | length)
+  retries: "{{ qpkg_wait_retries }}"
+  delay: "{{ qpkg_wait_delay }}"
+  changed_when: true

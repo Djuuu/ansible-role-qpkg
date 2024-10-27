@@ -1,0 +1,25 @@
+---
+dependencies: []
+
+galaxy_info:
+  namespace: djuuu
+  role_name: qpkg
+  author: Julien Tardot
+  description: Install or update QPKG packages on QNAP NAS.
+
+  issue_tracker_url: https://github.com/Djuuu/ansible-role-qpkg
+
+  license: Beerware
+
+  min_ansible_version: '2.9'
+
+  platforms:
+    - name: QTS
+      versions:
+        - '5.2'
+
+  galaxy_tags:
+    - qnap
+    - nas
+    - qts
+    - qpkg

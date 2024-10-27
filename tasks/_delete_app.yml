@@ -1,0 +1,24 @@
+---
+# Delete QPKG apps
+
+# vars:
+#   - app
+#   - wait
+
+# Trigger app removal
+- name: Trigger app removal
+  ansible.builtin.command: "qpkg_cli --remove {{ app }}"
+  register: removal
+  become: true
+  changed_when: true
+
+- name: Show app removal result
+  ansible.builtin.debug:
+    msg: "{{ removal.stdout }}"
+
+# Wait for deletion
+- name: Wait for deletion
+  ansible.builtin.include_tasks: _wait_deletion.yml
+  vars:
+    apps: "{{ [app] }}"
+  when: wait | default(true)

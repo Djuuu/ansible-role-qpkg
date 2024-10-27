@@ -1,0 +1,30 @@
+---
+# Install QPKG app
+
+# vars:
+#   - app
+#   - wait
+
+# Trigger app install
+- name: Trigger app install
+  ansible.builtin.command: "qpkg_cli --add {{ app }}{{ options }}"
+  vars:
+    rss_id: "{{ qpkg_app_store_conf[app] | default(None) }}"
+    options: "{{ rss_id | ternary(' --rss_id ' ~ rss_id, '') }}"
+  register: install
+  become: true
+  changed_when: true
+
+- name: Show install result
+  ansible.builtin.debug:
+    msg: "{{ install.stdout }}"
+
+# Wait for queued items
+- name: Wait for queued items
+  ansible.builtin.command: qpkg_cli --list
+  register: queue
+  until: queue.stdout_lines | length == 0
+  retries: "{{ qpkg_wait_retries }}"
+  delay: "{{ qpkg_wait_delay }}"
+  when: wait | default(true)
+  changed_when: true

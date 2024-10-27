@@ -1,0 +1,29 @@
+---
+# Get configured 3rd party repositories
+
+# Check 3rd party repository conf file exists
+- name: Check 3rd party repository conf file exists
+  ansible.builtin.stat:
+    path: "{{ qpkg_3rd_party_conf_path }}"
+  register: repo_conf_file
+
+- name: Load 3rd party repository configuration & register app repositories
+  when: repo_conf_file.stat.exists
+  block:
+
+    # Load 3rd party repository configuration
+    - name: Load 3rd party repository configuration
+      ansible.builtin.slurp:
+        src: "{{ qpkg_3rd_party_conf_path }}"
+      register: repo_conf_b64
+
+    # Register qpkg_repositories
+    - name: Register qpkg_repositories
+      ansible.builtin.set_fact:
+        qpkg_repositories: "{{ repo_conf_b64.content | b64decode | community.general.from_ini | dict2items }}"
+
+# Init qpkg_repositories
+- name: Init qpkg_repositories
+  ansible.builtin.set_fact:
+    qpkg_repositories: []
+  when: not repo_conf_file.stat.exists

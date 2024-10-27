@@ -1,0 +1,11 @@
+---
+# Wait for QPKG install queue
+
+# Wait for install queue
+- name: Wait for install queue
+  ansible.builtin.command: qpkg_cli --list
+  register: list_result
+  until: list_result.stdout_lines | length == 0
+  retries: "{{ qpkg_wait_retries }}"
+  delay: "{{ qpkg_wait_delay }}"
+  changed_when: true

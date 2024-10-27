@@ -1,0 +1,7 @@
+---
+
+# Installed qpkg configuration file
+qpkg_conf_path: /etc/config/qpkg.conf
+
+# Third party repositories configuration file
+qpkg_3rd_party_conf_path: /etc/config/3rd_pkg_v2.conf

@@ -1,0 +1,34 @@
+---
+# Get installed QPKG apps
+
+# Get Installed QPKG apps status
+- name: Get Installed QPKG apps status
+  ansible.builtin.command: qpkg_cli --upgradable all
+  register: status
+  become: true
+  changed_when: false
+
+# Register app lists
+- name: Register app lists
+  vars:
+    apps: "{{ status.stdout | default('') | community.general.from_ini | dict2items }}"
+    installed_query:  "[*].key"
+    upgradable_query: "[?value.upgradeStatus=='0'].key"
+  ansible.builtin.set_fact:
+    qpkg_installed_apps:  "{{ apps | community.general.json_query(installed_query) }}"
+    qpkg_upgradable_apps: "{{ apps | community.general.json_query(upgradable_query) | difference(qpkg_unwanted_apps | default([], true)) }}"
+    qpkg_deletable_apps:  "{{ apps | community.general.json_query(installed_query) | intersect(qpkg_unwanted_apps | default([], true)) }}"
+
+# Load QPKG apps configuration
+- name: Load QPKG apps configuration
+  ansible.builtin.slurp:
+    src: "{{ qpkg_conf_path }}"
+  register: qpkg_config
+
+# Register apps with custom store
+- name: Register apps with custom store
+  vars:
+    apps_qpkg_conf: "{{ qpkg_config.content | b64decode | community.general.from_ini }}"
+    custom_store_query: "[?value.store].{key: key, value: value.store}"
+  ansible.builtin.set_fact:
+    qpkg_app_store_conf: "{{ apps_qpkg_conf | dict2items | community.general.json_query(custom_store_query) | items2dict }}"

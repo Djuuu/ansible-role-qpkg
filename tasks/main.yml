@@ -1,0 +1,64 @@
+---
+
+# Get Installed apps status & configuration
+- name: Get Installed apps status & configuration
+  ansible.builtin.include_tasks: _get_installed_apps.yml
+
+# Init 3rd party repositories
+- name: Init 3rd party repositories
+  ansible.builtin.include_tasks: _init_3rd_party_repo_conf.yml
+  vars:
+    repositories: "{{ qpkg_3rd_party_apps | default([], true) }}"
+  loop: "{{ repositories }}"
+  loop_control:
+    loop_var: repository
+
+# Show installed apps
+- name: Show installed apps
+  ansible.builtin.debug:
+    msg:
+      - "installed apps:"
+      - "{{ qpkg_installed_apps }}"
+
+# Delete unwanted apps
+- name: Delete unwanted apps
+  ansible.builtin.include_tasks: _delete_app.yml
+  vars:
+    wait: "{{ qpkg_wait_queue }}"
+  loop: "{{ qpkg_deletable_apps }}"
+  loop_control:
+    loop_var: app
+
+# Install QNAP Store apps
+- name: Install QNAP Store apps
+  ansible.builtin.include_tasks: _install-app.yml
+  vars:
+    missing_apps: "{{ qpkg_apps | default([], true)
+      | difference(qpkg_installed_apps)
+      | difference(qpkg_unwanted_apps | default([], true) ) }}"
+    wait: "{{ qpkg_wait_queue }}"
+  loop: "{{ missing_apps }}"
+  loop_control:
+    loop_var: app
+
+# Install 3rd party apps
+- name: Install 3rd party apps
+  ansible.builtin.include_tasks: _install-app.yml
+  vars:
+    wanted_apps: "{{ qpkg_3rd_party_apps | default([], true) | community.general.json_query('[*].apps') | flatten }}"
+    missing_apps: "{{ wanted_apps
+      | difference(qpkg_installed_apps)
+      | difference(qpkg_unwanted_apps | default([], true)) }}"
+    wait: "{{ qpkg_wait_queue }}"
+  loop: "{{ missing_apps }}"
+  loop_control:
+    loop_var: app
+
+# Update apps
+- name: Update apps
+  ansible.builtin.include_tasks: _install-app.yml
+  vars:
+    wait: "{{ qpkg_wait_queue }}"
+  loop: "{{ qpkg_upgradable_apps }}"
+  loop_control:
+    loop_var: app

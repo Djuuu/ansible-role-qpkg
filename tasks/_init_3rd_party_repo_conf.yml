@@ -1,0 +1,46 @@
+---
+# Init 3rd party repository configuration
+
+# vars:
+#   - repository:
+#       repository_name
+#       repository_url
+#       repository_user
+#       repository_pw
+#   - apps
+
+- name: Load 3rd party repository configuration
+  ansible.builtin.include_tasks: _load_3rd_party_repo_conf.yml
+  when: qpkg_repositories is undefined
+
+- name: Init 3rd party repository
+  vars:
+    qpkg_repo_hash: "{{ repository.repository_url | md5 }}"
+  block:
+    # Init 3rd party repository in conf if missing
+    - name: Init 3rd party repository configuration
+      community.general.ini_file:
+        path: "{{ qpkg_3rd_party_conf_path }}"
+        section: "{{ qpkg_repo_hash }}"
+        option: "{{ ini_item.option }}"
+        value:  "{{ ini_item.value }}"
+        mode: '0644'
+      no_log: "{{ ini_item.option not in ['d', 'u'] }}"
+      with_items:
+        - { option: "store", value: "{{ qpkg_repo_hash }}" }
+        - { option: "d",     value: "{{ repository.repository_name }}" }
+        - { option: "u",     value: "{{ repository.repository_url }}" }
+        - { option: "user",  value: "{{ repository.repository_user | default('', true) }}" }
+        - { option: "pw",    value: "{{ repository.repository_pw   | default('', true) }}" }
+      loop_control:
+        loop_var: ini_item
+      become: true
+      when: qpkg_repositories | json_query('[?value.u == `' ~ repository.repository_url ~ '`].value') | length == 0
+
+    # Register apps custom store
+    - name: Register apps custom store
+      vars:
+        app_conf_query: "[*].{key: @, value: '{{ qpkg_repo_hash }}'}"
+        repo_apps: "{{ repository.apps | default([], true) | community.general.json_query(app_conf_query) }}"
+      ansible.builtin.set_fact:
+        qpkg_app_store_conf: "{{ qpkg_app_store_conf | combine(repo_apps | items2dict) }}"
